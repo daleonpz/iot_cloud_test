@@ -1,0 +1,6 @@
+# add airflow logs to .gitignore
+airflow/logs/*
+
+# vim swap files
+*.swp
+
