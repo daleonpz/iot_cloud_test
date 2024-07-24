@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+boto3
+cassandra-driver
