@@ -22,7 +22,6 @@ docker exec -it my-broker mosquitto_pub -h localhost -t test -m "hello"
 ```
 cd datalake
 docker build -t my-datalake .
-docker run -d --name my-datalake -p 9000:9000 my-datalake
 docker run -d --name my-datalake -p 9000:9000 -e "MINIO_ACCESS_KEY=minio" -e "MINIO_SECRET_KEY=minio123" my-datalake server /data --console-address ":9001"
 ```
 
@@ -86,6 +85,35 @@ docker run -it --name api -p 8000:8000 --link my-db:my-db api bash
 curl -X GET "http://localhost:8000/data/{id}" -H  "accept: application/json" -d '{"temperature": 25.0, "battery_level": 50.0}'
 # Get data from the database
 curl -X POST "http://localhost:8000/data/{id}" -H  "accept: application/json"
+```
+
+# test transformation (ELT)
+
+First create dummy data in the datalake
+
+```
+python datalake/create_test_data.py
+```
+
+Testing transforming data from datalake to database using a python script within a docker container
+
+```
+cd transformation
+docker build -t my-transformation .
+docker run -d --name my-transformation --link my-datalake:my-datalake --link my-db:my-db my-transformation
+```
+
+verify it in the database
+
+```
+docker exec -it my-db cqlsh localhost
+```
+
+run the following commands in cqlsh
+
+```
+USE iot;
+SELECT * FROM measurements;
 ```
 
 # stop all 
