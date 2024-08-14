@@ -116,6 +116,12 @@ USE iot;
 SELECT * FROM measurements;
 ```
 
+# Test with airflow
+
+```
+docker compose up
+```
+
 # stop all 
 
 ```
