@@ -9,32 +9,37 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize Cassandra connection
-cluster = Cluster(['my-db'])
+cluster = Cluster(["my-db"])
 session = cluster.connect()
 
-# Use the IP address of the Minio container, not localhost 
+# Use the IP address of the Minio container, not localhost
 # botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint URL: "http://localhost:9000/test-data?list-type=2&encoding-type=url"
-# http://172.17.0.2:9001/browser/test-data/ 
+# http://172.17.0.2:9001/browser/test-data/
 
-s3 = boto3.client('s3', endpoint_url='http://172.17.0.2:9000',
-                  aws_access_key_id='minio',
-                  aws_secret_access_key='minio123')
+s3 = boto3.client(
+    "s3",
+    endpoint_url="http://172.17.0.2:9000",
+    aws_access_key_id="minio",
+    aws_secret_access_key="minio123",
+)
+
 
 def transform_data(data):
-    temp_c = (data['temperature'] - 32) * 5.0 / 9.0
-    battery_percent = (data['battery_level'] / 5000.0) * 100
+    temp_c = (data["temperature"] - 32) * 5.0 / 9.0
+    battery_percent = (data["battery_level"] / 5000.0) * 100
     return temp_c, battery_percent
+
 
 def process_data_from_minio():
     # List all files in the bucket
-    response = s3.list_objects_v2(Bucket='test-data')
+    response = s3.list_objects_v2(Bucket="test-data")
     logger.info(f"Files in the bucket: {response.get('Contents', [])}")
-    print(response.get('Contents', []))
-    for obj in response.get('Contents', []):
-        key = obj['Key']
+    print(response.get("Contents", []))
+    for obj in response.get("Contents", []):
+        key = obj["Key"]
         # Download the JSON file
-        file_obj = s3.get_object(Bucket='test-data', Key=key)
-        data = json.loads(file_obj['Body'].read().decode('utf-8'))
+        file_obj = s3.get_object(Bucket="test-data", Key=key)
+        data = json.loads(file_obj["Body"].read().decode("utf-8"))
 
         logger.info(f"Processing file: {key}")
         logger.info(f"Data: {data}")
@@ -48,6 +53,6 @@ def process_data_from_minio():
         id = uuid.uuid4()
         session.execute(query, (id, temp_c, battery_percent))
 
+
 if __name__ == "__main__":
     process_data_from_minio()
-
