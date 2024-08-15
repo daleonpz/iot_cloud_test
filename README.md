@@ -134,3 +134,6 @@ docker rm $(docker ps -a -q)
 ```
 docker rmi $(docker images -q)
 ```
+
+## TODO
+[ ] transformation dags is running the whole time
