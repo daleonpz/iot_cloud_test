@@ -2,11 +2,13 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
 
-def run_transformations():
-    import subprocess
-    subprocess.run(["python", "/app/test_transformer.py"])
-#     subprocess.run(["python", "/app/transformer.py"])
+# from modules import Transformer
+from modules.transformer import Transformer
 
+def run_transformations():
+    transformer = Transformer()
+    transformer.ProcessDataFromDatalake()
+    transformer.services.Close()
 
 default_args = {
     'owner': 'airflow',
