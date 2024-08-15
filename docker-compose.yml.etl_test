@@ -1,0 +1,78 @@
+
+# 
+# ├── airflow
+# │   ├── dags
+# │   ├── docker-compose.yaml
+# │   ├── Dockerfile
+# │   ├── logs
+# │   └── plugins
+# ├── database
+# │   └── Dockerfile
+# ├── datalake
+# │   └── Dockerfile
+# ├── docker-compose.yml
+# ├── grafana
+# │   └── Dockerfile
+# ├── mqtt
+# │   ├── Dockerfile
+# │   └── mosquitto.conf
+# ├── README.md
+# ├── restapi
+# │   ├── app.py
+# │   ├── Dockerfile
+# │   └── requirements.txt
+# └── transformations
+#     ├── Dockerfile
+#     ├── requirements.txt
+#     └── transformer.py
+
+services:
+  # Datalake
+  # This service will be used to store the raw data (MinIO)
+  datalake:
+    build:
+      context: ./datalake
+      dockerfile: Dockerfile
+    container_name: my_datalake
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: ["server", "/data", "--console-address", ":9001"]
+    networks:
+      - backend
+    restart: always
+
+  # Database
+  # This service will be used to store the transformed data (Casandra)
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: my_db
+    ports:
+      - "9042:9042"
+    networks:
+      - backend
+    restart: always
+
+  # Transformations
+  # This service will be used to run the transformations (ETL)
+  transformations:
+    build:
+      context: ./transformations
+      dockerfile: Dockerfile
+    container_name: my_transformations
+    networks:
+      - backend
+    depends_on:
+      - database
+      - datalake
+    restart: always
+
+networks:
+  # Backend network
+  # This network will be used to connect the services
+  backend:
+    driver: bridge
