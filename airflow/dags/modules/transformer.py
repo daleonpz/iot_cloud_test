@@ -83,6 +83,7 @@ class Services:
             return False
 
     def Close(self):
+        logger.info("Closing connections")
         self.databank_conn_handler.shutdown()
 
     def GetServices(self):
