@@ -17,6 +17,17 @@ services:
       context: ./mqtt
       dockerfile: Dockerfile
     container_name: mqtt_app
+    environment:
+      MQTT_BROKER: docker-mqtt-broker
+      MQTT_PORT: 1883
+      MQTT_TOPIC: test/dummy_topic
+      MQTT_NUM_RETRIES: 10
+      MINIO_ENDPOINT: docker-datalake
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+      MINIO_BUCKET_NAME: test-data
+      MINIO_NUM_RETRIES: 3
     networks:
       - backend
     restart: always
