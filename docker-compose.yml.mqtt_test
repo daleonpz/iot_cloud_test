@@ -1,0 +1,45 @@
+services:
+  # MQTT-Broker
+  docker-mqtt-broker:
+    image: eclipse-mosquitto
+    container_name: my_broker
+    ports:
+      - "1883:1883"
+    networks:
+      - backend
+    volumes:
+      - ./mqtt/mqtt.conf:/mosquitto/config/mosquitto.conf
+    restart: always
+
+  # MQTT-APP
+  docker-mqtt-app:
+    build:
+      context: ./mqtt
+      dockerfile: Dockerfile
+    container_name: mqtt_app
+    networks:
+      - backend
+    restart: always
+
+  # Datalake
+  # This service will be used to store the raw data (MinIO)
+  docker-datalake:
+    build:
+      context: ./datalake
+      dockerfile: Dockerfile
+    container_name: my_datalake
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: ["server", "/data", "--console-address", ":9001"]
+    networks:
+      - backend
+    restart: always
+
+networks:
+  # Backend network
+  # This network will be used to connect the services
+  backend:
+    driver: bridge
