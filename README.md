@@ -1,3 +1,9 @@
+# Inspect the ip address of the docker container
+
+```
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' my-datalake
+```
+
 # test mqtt broker
 
 ```
@@ -114,6 +120,19 @@ run the following commands in cqlsh
 ```
 USE iot;
 SELECT * FROM measurements;
+```
+
+# Test MQTT with DataLake
+
+```
+docker-compose -f docker-compose.yml.mqtt_test up --build
+```
+
+from another terminal
+
+```
+cd mqtt/
+python mqtt_publisher_test.py
 ```
 
 # Test with airflow
