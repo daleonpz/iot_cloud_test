@@ -156,3 +156,4 @@ docker rmi $(docker images -q)
 
 ## TODO
 [ ] transformation dags is running the whole time
+[ ] Use enviroment variables to manage ips
