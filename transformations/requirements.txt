@@ -1,3 +1,4 @@
 paho-mqtt
 cassandra-driver
 boto3
+tqdm

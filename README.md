@@ -95,18 +95,10 @@ curl -X POST "http://localhost:8000/data/{id}" -H  "accept: application/json"
 
 # test transformation (ELT)
 
-First create dummy data in the datalake
+Testing transforming data from datalake to database using docker-compose
 
 ```
-python datalake/create_test_data.py
-```
-
-Testing transforming data from datalake to database using a python script within a docker container
-
-```
-cd transformation
-docker build -t my-transformation .
-docker run -d --name my-transformation --link my-datalake:my-datalake --link my-db:my-db my-transformation
+docker-compose -f docker-compose.yml.etl_test up --build
 ```
 
 verify it in the database

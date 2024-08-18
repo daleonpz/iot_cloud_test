@@ -1,35 +1,7 @@
-
-# 
-# ├── airflow
-# │   ├── dags
-# │   ├── docker-compose.yaml
-# │   ├── Dockerfile
-# │   ├── logs
-# │   └── plugins
-# ├── database
-# │   └── Dockerfile
-# ├── datalake
-# │   └── Dockerfile
-# ├── docker-compose.yml
-# ├── grafana
-# │   └── Dockerfile
-# ├── mqtt
-# │   ├── Dockerfile
-# │   └── mosquitto.conf
-# ├── README.md
-# ├── restapi
-# │   ├── app.py
-# │   ├── Dockerfile
-# │   └── requirements.txt
-# └── transformations
-#     ├── Dockerfile
-#     ├── requirements.txt
-#     └── transformer.py
-
 services:
   # Datalake
   # This service will be used to store the raw data (MinIO)
-  datalake:
+  docker-datalake:
     build:
       context: ./datalake
       dockerfile: Dockerfile
@@ -46,7 +18,7 @@ services:
 
   # Database
   # This service will be used to store the transformed data (Casandra)
-  database:
+  docker-database:
     build:
       context: ./database
       dockerfile: Dockerfile
@@ -59,16 +31,19 @@ services:
 
   # Transformations
   # This service will be used to run the transformations (ETL)
-  transformations:
+  docker-transformations:
     build:
       context: ./transformations
       dockerfile: Dockerfile
     container_name: my_transformations
+    volumes:
+      - ./airflow/dags/modules/transformer.py:/app/transformer.py
     networks:
       - backend
     depends_on:
-      - database
-      - datalake
+      - docker-database
+      - docker-datalake
+    command: ["python", "transformer.py"]
     restart: always
 
 networks:
