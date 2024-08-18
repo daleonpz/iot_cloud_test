@@ -44,7 +44,20 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
-version: '3.8'
+x-defaults:
+  &defaults-common
+  build:
+    dockerfile: Dockerfile
+  networks:
+    - backend
+  restart: always
+  environment:
+    &defaults-env
+    MINIO_ACCESS_KEY: ${DATALAKE_USER:-minio}
+    MINIO_SECRET_KEY: ${DATALAKE_PASSWORD:-minio123}
+    NUM_RETRIES: ${NUM_CONNECTION_RETRIES:-5}
+
+---
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
@@ -71,7 +84,19 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- paho-mqtt cassandra-driver boto3}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:- paho-mqtt cassandra-driver boto3 tqdm}
+    ################################################################
+    ### MY OWN ENVIRONMENT VARIABLES 
+    ### Dags uses these variables to connect to the services
+    ################################################################
+    MINIO_ACCESS_KEY: ${DATALAKE_USER:-minio}
+    MINIO_SECRET_KEY: ${DATALAKE_PASSWORD:-minio123}
+    NUM_RETRIES: ${NUM_CONNECTION_RETRIES:-5}
+    MINIO_HOST: docker-datalake
+    MINIO_PORT: ${DATALAKE_PORT:-9000}
+    MINIO_BUCKET: ${DATALAKE_BUCKET:-my_bucket}
+    CASSANDRA_HOST: ${DATABASE_NAME:-my_db}
+    CASSANDRA_PORT: ${DATABASE_PORT:-9042}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -300,51 +325,68 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+#########################################################
+#       MY OWN SERVICES
+#       - MQTT Broker
+#       - MQTT App (mqtt -> datalake)
+#       - Datalake (MinIO)
+#       - Database (Cassandra)
+#       - API (FastAPI) -> Not yet included in this file
+#       - Frontend (React) -> Not yet included in this file
+#########################################################
+  # MQTT Broker
+  # This service will be used to handle the MQTT messages (Eclipse Mosquitto)
+  docker-mqtt-broker:
+    << : *defaults-common
+    build:
+      context: ./mqtt_broker
+    container_name: my_broker
+    ports:
+      - ${MQTT_PORT:-1883}:${MQTT_PORT:-1883}
+    volumes:
+      - ./mqtt/mqtt.conf:/mosquitto/config/mosquitto.conf
+
+  # MQTT App
+  # This service will be used to handle the MQTT messages and store them in the datalake (Python)
+  docker-mqtt-app:
+    << : *defaults-common
+    build:
+      context: ./mqtt
+    container_name: my_mqtt_app
+    environment:
+      << : *defaults-env
+      MQTT_BROKER: docker-mqtt-broker
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_TOPIC: ${MQTT_TOPIC:-test}
+      MINIO_ENDPOINT: docker-datalake
+      MINIO_PORT: ${DATALAKE_PORT:-9000}
+      MINIO_BUCKET_NAME: ${DATALAKE_BUCKET:-test}
+    depends_on:
+      - docker-mqtt-broker
+      - docker-datalake
+
   # Datalake
   # This service will be used to store the raw data (MinIO)
-  my_datalake:
+  docker-datalake:
+    <<: *defaults-common
     build:
       context: ./datalake
-      dockerfile: Dockerfile
     container_name: my_datalake
     ports:
-      - "9000:9000"
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      - ${DATALAKE_PORT:-9000}:${DATALAKE_PORT:-9000}
     command: ["server", "/data", "--console-address", ":9001"]
-    networks:
-      - backend
-    restart: always
 
   # Database
   # This service will be used to store the transformed data (Casandra)
-  my_database:
+  docker-database:
+    <<: *defaults-common
     build:
       context: ./database
-      dockerfile: Dockerfile
     container_name: my_db
     ports:
-      - "9042:9042"
-    networks:
-      - backend
+      - ${DATABASE_PORT:-9042}:${DATABASE_PORT:-9042}
     depends_on:
-      - my_datalake
-    restart: always
-
-  # Transformations
-  # This service will be used to run the transformations (ETL)
-#   my_transformations:
-#     build:
-#       context: ./transformations
-#       dockerfile: Dockerfile
-#     container_name: my_transformations
-#     networks:
-#       - backend
-#     depends_on:
-#       - my_database
-#       - my_datalake
-#     restart: always
+      - docker-datalake
 
 networks:
   backend:

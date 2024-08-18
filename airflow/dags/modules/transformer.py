@@ -11,18 +11,22 @@ import logging
 import socket
 import time
 
+import os
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NUM_RETRIES = 10
-MINIO_HOST = "docker-datalake"
-MINIO_PORT = 9000
-MINIO_ACCESS_ID = "minio"
-MINIO_SECRET_KEY = "minio123"
-MINIO_BUCKET = "test-data"
+NUM_RETRIES = int(os.getenv("NUM_RETRIES", 3))
 
-CASSANDRA_HOST = "my_db"
-CASSANDRA_PORT = 9042
+MINIO_HOST = os.getenv("MINIO_HOST", "docker_datalake")
+MINIO_PORT = os.getenv("MINIO_PORT", 9000)
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minio")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minio123")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "test_data")
+
+CASSANDRA_HOST = os.getenv("CASSANDRA_HOST", "my_db")
+CASSANDRA_PORT = os.getenv("CASSANDRA_PORT", 9042)
+
 
 class Services:
     def __init__(self):
@@ -34,8 +38,8 @@ class Services:
         """Connect to Cassandra (Databank)"""
         try:
             self.databank_conn_handler = Cluster(
-                contact_points=["my_db"],
-                port=9042,
+                contact_points=[CASSANDRA_HOST],
+                port=CASSANDRA_PORT,
                 load_balancing_policy=DCAwareRoundRobinPolicy(local_dc="datacenter1"),
             )
             self.databank_handler = self.databank_conn_handler.connect()
@@ -67,7 +71,7 @@ class Services:
             self.datalake_handler = boto3.client(
                 "s3",
                 endpoint_url=f"http://{MINIO_HOST}:{MINIO_PORT}",
-                aws_access_key_id=MINIO_ACCESS_ID,
+                aws_access_key_id=MINIO_ACCESS_KEY,
                 aws_secret_access_key=MINIO_SECRET_KEY,
             )
             return True
@@ -77,8 +81,6 @@ class Services:
 
     def Close(self):
         logger.info("Closing connections")
-#         self.databank_handler.shutdown()
-#         self.datalake_handler.close()
 
     def GetServices(self):
         return [self.databank_handler, self.datalake_handler]
