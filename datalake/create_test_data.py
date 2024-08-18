@@ -16,11 +16,14 @@ test_data = [
         {"temperature": random.randint(50, 100), "battery_level": random.randint(2000, 5000)},
         ]
 
-# create bucket
-s3.create_bucket(Bucket='test-data')
-
 # test connection with MinIO
 response = s3.list_buckets()
+
+# if test-data bucket does not exist, create it
+if 'test-data' not in [bucket['Name'] for bucket in response['Buckets']]:
+    logger.info(f"Creating bucket: test-data")
+    s3.create_bucket(Bucket='test-data')
+
 logger.info(f"List of buckets: {response['Buckets']}")
 
 for i, data in enumerate(test_data):
