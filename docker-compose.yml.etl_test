@@ -1,50 +1,57 @@
+x-defaults:
+  &defaults-common
+  build:
+    dockerfile: Dockerfile
+  networks:
+    - backend
+  restart: always
+  environment:
+    &defaults-env
+    MINIO_ACCESS_KEY: ${DATALAKE_USER:-minio}
+    MINIO_SECRET_KEY: ${DATALAKE_PASSWORD:-minio123}
+    NUM_RETRIES: ${NUM_CONNECTION_RETRIES:-5}
+
 services:
   # Datalake
   # This service will be used to store the raw data (MinIO)
   docker-datalake:
+    <<: *defaults-common
     build:
       context: ./datalake
-      dockerfile: Dockerfile
     container_name: my_datalake
     ports:
-      - "9000:9000"
-    environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
+      - ${DATALAKE_PORT:-9000}:${DATALAKE_PORT:-9000}
     command: ["server", "/data", "--console-address", ":9001"]
-    networks:
-      - backend
-    restart: always
 
   # Database
   # This service will be used to store the transformed data (Casandra)
   docker-database:
+    <<: *defaults-common
     build:
       context: ./database
-      dockerfile: Dockerfile
-    container_name: my_db
+    container_name: ${DATABASE_NAME:-my_db}
     ports:
-      - "9042:9042"
-    networks:
-      - backend
-    restart: always
+      - ${DATABASE_PORT:-9042}:${DATABASE_PORT:-9042}
 
   # Transformations
   # This service will be used to run the transformations (ETL)
   docker-transformations:
+    <<: *defaults-common
     build:
       context: ./transformations
-      dockerfile: Dockerfile
     container_name: my_transformations
     volumes:
       - ./airflow/dags/modules/transformer.py:/app/transformer.py
-    networks:
-      - backend
     depends_on:
       - docker-database
       - docker-datalake
+    environment:
+      MINIO_HOST: docker-datalake
+      MINIO_PORT: ${DATALAKE_PORT:-9000}
+      MINIO_BUCKET: ${DATALAKE_BUCKET:-my_bucket}
+      CASSANDRA_HOST: ${DATABASE_NAME:-my_db}
+      CASSANDRA_PORT: ${DATABASE_PORT:-9042}
     command: ["python", "transformer.py"]
-    restart: always
 
 networks:
   # Backend network
