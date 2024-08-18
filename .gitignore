@@ -4,3 +4,11 @@ airflow/logs/*
 # vim swap files
 *.swp
 
+# python temp files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+
+
