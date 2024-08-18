@@ -143,7 +143,27 @@ python mqtt_publisher_test.py
 # Test with airflow
 
 ```
-docker compose up
+docker-compose -f docker-compose.yml up --build
+```
+in another terminal start mqtt publisher
+
+```
+cd mqtt/
+python mqtt_publisher_test.py
+```
+
+login to airflow at http://localhost:8080 with username `airflow` and password `airflow`. 
+Click on "transform_data" under "DAG" tab and click on "Trigger DAG" or "Play" button. Once the DAG is completed, verify the data in the database
+
+```
+docker exec -it my_db cqlsh localhost
+```
+
+in cqlsh
+
+```
+USE iot;
+SELECT * FROM measurements;
 ```
 
 # stop all 
