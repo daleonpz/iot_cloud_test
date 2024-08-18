@@ -22,6 +22,7 @@ The components are connected as follows:
 3. The **Data Lake** stores raw data and acts as the source for the **Transformation** component.
 4. The **Transformation** reads raw data from the **Data Lake**, processes it, and writes it to the **Database**. **Airflow** is used to orchestrate the workflow.
 
+Once you have clean data in the database, you can use it for analytics, machine learning, or other applications.
 
 ## Table of Contents
 
@@ -45,6 +46,12 @@ The components are connected as follows:
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
+- Clone this repository
+
+```sh
+git clone https://github.com/daleonpz/iot_cloud_test.git
+cd iot_cloud_test
+```
 
 ## Component Testing
 ### MQTT Broker
