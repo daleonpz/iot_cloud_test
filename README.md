@@ -26,6 +26,7 @@ The components are connected as follows:
 ## Table of Contents
 
 [Prerequisites](#prerequisites)
+
 [Component Testing](#component-testing)
 - [MQTT Broker](#mqtt-broker)
 - [Data Lake (MinIO)](#data-lake-minio)
@@ -38,6 +39,7 @@ The components are connected as follows:
 - [Airflow Workflow](#airflow-workflow)
 
 [Stopping and Cleaning Up](#stopping-and-cleaning-up)
+
 [Good to know](#good-to-know)
 
 ## Prerequisites
