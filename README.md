@@ -1,3 +1,16 @@
+# Docker compose for IoT data pipeline
+
+This is a simple data pipeline for IoT data. It consists of the following components:
+- MQTT broker
+- MQTT agent or application
+- Data lake (Minio)
+- Database (Cassandra)
+- REST API (FastAPI)
+- Airflow (Orchestration)
+- Transformation (ELT)
+
+# Docker compose info
+- `.env` file is used to set environment variables
 # Inspect the ip address of the docker container
 
 ```
@@ -117,7 +130,7 @@ SELECT * FROM measurements;
 # Test MQTT with DataLake
 
 ```
-docker-compose -f docker-compose.yml.mqtt_test up --build
+docker-compose -f docker-compose.yml.mqtt_app_test up --build
 ```
 
 from another terminal
