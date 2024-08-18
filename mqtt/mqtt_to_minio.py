@@ -97,14 +97,14 @@ if __name__ == '__main__':
     MQTT_BROKER = os.getenv('MQTT_BROKER', 'localhost')
     MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
     MQTT_TOPIC = os.getenv('MQTT_TOPIC', 'test/dummy_topic')
-    MQTT_NUM_RETRIES = int(os.getenv('MQTT_NUM_RETRIES', 10))
+    MQTT_NUM_RETRIES = int(os.getenv('NUM_RETRIES', 10))
 
     MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'localhost')
     MINIO_PORT = os.getenv('MINIO_PORT', '9000')
     MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minio')
     MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minio123')
     MINIO_BUCKET_NAME = os.getenv('MINIO_BUCKET_NAME', 'test-data')
-    MINIO_NUM_RETRIES = int(os.getenv('MINIO_NUM_RETRIES', 3))
+    MINIO_NUM_RETRIES = int(os.getenv('NUM_RETRIES', 3))
 
     # Initialize MinIO client
     minio_client = MinIOClient(
