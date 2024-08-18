@@ -1,184 +1,246 @@
-# Docker compose for IoT data pipeline
+# IoT "Cloud" Data Pipeline
+This repository helps you understand the basic components needed to build a data pipeline for IoT data and how they work together. Use this setup to test individual components or see how they function as a complete system. You can also expand this setup to create a more complex pipeline and deploy it to cloud platforms like AWS, Azure, or Google Cloud.
 
-This is a simple data pipeline for IoT data. It consists of the following components:
-- MQTT broker
-- MQTT agent or application
-- Data lake (Minio)
+I chose Docker Compose for local deployment to focus on understanding the components and their interactions without the complexity of cloud providers. This approach also makes it easy to share the setup and run it on any machine with minimal effort.
+
+The pipeline and infrastructure include:
+
+- MQTT Broker
+- MQTT Agent/Application
+- Data Lake (MinIO)
 - Database (Cassandra)
 - REST API (FastAPI)
-- Airflow (Orchestration)
+- Orchestration (Airflow)
 - Transformation (ELT)
 
-# Docker compose info
-- `.env` file is used to set environment variables
-# Inspect the ip address of the docker container
+The components are connected as follows:
 
-```
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' my-datalake
-```
+![Architecture](images/arch.png)
 
-# test mqtt broker
+1. The **MQTT Broker** is the entry point for the data. It receives data from the IoT devices and publishes it to a topic.
+2. The **MQTT Agent** subscribes to the topic and writes it to the **Data Lake**.
+3. The **Data Lake** stores raw data and acts as the source for the **Transformation** component.
+4. The **Transformation** reads raw data from the **Data Lake**, processes it, and writes it to the **Database**. **Airflow** is used to orchestrate the workflow.
 
-```
+
+## Table of Contents
+
+[Prerequisites](#prerequisites)
+[Component Testing](#component-testing)
+- [MQTT Broker](#mqtt-broker)
+- [Data Lake (MinIO)](#data-lake-minio)
+- [Database (Cassandra)](#database-cassandra)
+- [REST API (FastAPI)](#rest-api-fastapi)
+- [Transformation (ELT)](#transformation-elt)
+
+[Integration Testing](#integration-testing)
+- [MQTT with Data Lake](#mqtt-with-data-lake)
+- [Airflow Workflow](#airflow-workflow)
+
+[Stopping and Cleaning Up](#stopping-and-cleaning-up)
+[Good to know](#good-to-know)
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+## Component Testing
+### MQTT Broker
+
+1. Build and Run
+
+```sh
 cd mqtt
 docker build -t my-broker .
 docker run -d --name my-broker -p 1883:1883 my-broker
 ```
 
-test mqtt broker with mosquitto_sub
+2. Test MQTT Broker
 
-```
+- Subscribe to Topic
+
+```sh
 docker exec -it my-broker mosquitto_sub -h localhost -t test
 ```
-in another terminal
 
-```
+3. Publish to Topic
+
+In another terminal:
+
+```sh
 docker exec -it my-broker mosquitto_pub -h localhost -t test -m "hello"
 ```
 
-# test datalake (minio)
+### Data Lake (MinIO)
 
-```
+1. Build and Run
+
+```sh
 cd datalake
 docker build -t my-datalake .
 docker run -d --name my-datalake -p 9000:9000 -e "MINIO_ACCESS_KEY=minio" -e "MINIO_SECRET_KEY=minio123" my-datalake server /data --console-address ":9001"
 ```
 
-open http://localhost:9000 in browser
+2. Access Data Lake
 
-```
-access key: minio
-secret key: minio123
-```
+Open http://localhost:9000 in your browser.
 
-to if localhost:9000 is not accessible, try to use the ip address of the docker container
+- Access Key: minio
+- Secret Key: minio123
 
-```
-$ docker logs my-datalake
-API: http://172.17.0.4:9000  http://127.0.0.1:9000 
-WebUI: http://172.17.0.4:38597 http://127.0.0.1:38597 
+If not accessible via localhost, use the container's IP address:
+
+```sh
+docker logs my-datalake
 ```
 
-# test database (cassandra)
+### Database (Cassandra)
 
-it may take a while to start the database
+1. Build and Run
 
-```
+```sh
 cd database
 docker build -t my-db .
 docker run -d --name my-db -p 9042:9042 my-db
 ```
 
-test database (cassandra) with cqlsh as standalone
+2. Test Cassandra with cqlsh
 
-```
+```sh
 docker exec -it my-db cqlsh localhost
 ```
 
-run the following commands in cqlsh
+3. Run the following commands in cqlsh:
 
-```
-CREATE KEYSPACE iot WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
-USE iot;
-CREATE TABLE measurements (id UUID PRIMARY KEY, temperature float, battery_level float);
-INSERT INTO measurements (id, temperature, battery_level) VALUES (uuid(), 25.0, 50.0);
-SELECT * FROM measurements;
+```sql
+    CREATE KEYSPACE iot WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
+    USE iot;
+    CREATE TABLE measurements (id UUID PRIMARY KEY, temperature float, battery_level float);
+    INSERT INTO measurements (id, temperature, battery_level) VALUES (uuid(), 25.0, 50.0);
+    SELECT * FROM measurements;
 ```
 
-# test fastapi
+### REST API (FastAPI)
 
-test cassandra with fastapi
-```
+1. Build and Run
+
+```sh
 cd restapi
 docker build -t api .
 docker run -d --name api -p 8000:8000 --link my-db:my-db api
 ```
 
-for debugging, run the following command
-```
-docker run -it --name api -p 8000:8000 --link my-db:my-db api bash
+2. Test API
 
+For debugging:
 
 ```sh
-# Send data to the database
-curl -X GET "http://localhost:8000/data/{id}" -H  "accept: application/json" -d '{"temperature": 25.0, "battery_level": 50.0}'
-# Get data from the database
-curl -X POST "http://localhost:8000/data/{id}" -H  "accept: application/json"
+docker run -it --name api -p 8000:8000 --link my-db:my-db api bash
 ```
 
-# test transformation (ELT)
+- Send Data to the Database
 
-Testing transforming data from datalake to database using docker-compose
-
+```sh
+curl -X GET "http://localhost:8000/data/{id}" -H "accept: application/json" -d '{"temperature": 25.0, "battery_level": 50.0}'
 ```
+
+- Get Data from the Database
+
+```sh
+curl -X POST "http://localhost:8000/data/{id}" -H "accept: application/json"
+```
+
+### Transformation (ELT)
+
+1. Build and Run
+
+```sh
 docker-compose -f docker-compose.yml.etl_test up --build
 ```
 
-verify it in the database
+2. Verify Data
 
-```
+```sh
 docker exec -it my-db cqlsh localhost
 ```
 
-run the following commands in cqlsh
+3. Run the following commands in cqlsh:
 
-```
+```sql
 USE iot;
 SELECT * FROM measurements;
 ```
 
-# Test MQTT with DataLake
+## Integration Testing
+### MQTT with Data Lake
+    
+1. Build and Run
 
-```
+```sh
 docker-compose -f docker-compose.yml.mqtt_app_test up --build
 ```
 
-from another terminal
+2. Publish Test Data
 
-```
+```sh
 cd mqtt/
 python mqtt_publisher_test.py
 ```
 
-# Test with airflow
+### Airflow Workflow
 
-```
+1. Build and Run
+
+```sh
 docker-compose -f docker-compose.yml up --build
 ```
-in another terminal start mqtt publisher
 
-```
+2. Publish Test Data
+
+```sh
 cd mqtt/
 python mqtt_publisher_test.py
 ```
 
-login to airflow at http://localhost:8080 with username `airflow` and password `airflow`. 
-Click on "transform_data" under "DAG" tab and click on "Trigger DAG" or "Play" button. Once the DAG is completed, verify the data in the database
+3. Access Airflow
 
-```
-docker exec -it my_db cqlsh localhost
+Log in to http://localhost:8080 with:
+
+- Username: airflow
+- Password: airflow
+
+Trigger the DAG:
+
+- Click on "transform_data" under the "DAG" tab.
+- Click "Trigger DAG" or the "Play" button.
+
+4. Verify Data
+
+```sh
+docker exec -it my-db cqlsh localhost
 ```
 
-in cqlsh
+Run the following commands in cqlsh:
 
-```
+```sql
 USE iot;
 SELECT * FROM measurements;
 ```
 
-# stop all 
+## Stopping and Cleaning Up
 
-```
-docker stop $(docker ps -a -q)
-docker rm $(docker ps -a -q)
-```
+1. Remove All Containers
 
-# delete all images
-
-```
-docker rmi $(docker images -q)
+```sh
+./tools/delete_containers.sh
 ```
 
-## TODO
-[ ] transformation dags is running the whole time
-[ ] Use enviroment variables to manage ips
+2. Delete All Images
+
+```sh
+./tools/delete_docker_images.sh
+```
+
+# Good to know
+- There is a `.env` file in the root directory that sets environment variables for the services. You can modify this file as needed.
