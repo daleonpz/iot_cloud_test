@@ -1,53 +1,56 @@
+x-defaults:
+  &defaults-common
+  build:
+    dockerfile: Dockerfile
+  networks:
+    - backend
+  restart: always
+  environment:
+    &defaults-env
+    MINIO_ACCESS_KEY: ${DATALAKE_USER:-minio}
+    MINIO_SECRET_KEY: ${DATALAKE_PASSWORD:-minio123}
+    NUM_RETRIES: ${NUM_CONNECTION_RETRIES:-5}
+
 services:
   # MQTT-Broker
   docker-mqtt-broker:
-    image: eclipse-mosquitto
+    <<: *defaults-common
+    build:
+      context: ./mqtt_broker
     container_name: my_broker
     ports:
-      - "1883:1883"
-    networks:
-      - backend
+      - ${MQTT_PORT:-1883}:${MQTT_PORT:-1883}
     volumes:
       - ./mqtt/mqtt.conf:/mosquitto/config/mosquitto.conf
-    restart: always
 
   # MQTT-APP
   docker-mqtt-app:
+    <<: *defaults-common
     build:
       context: ./mqtt
-      dockerfile: Dockerfile
     container_name: mqtt_app
     environment:
+      <<: *defaults-env
       MQTT_BROKER: docker-mqtt-broker
-      MQTT_PORT: 1883
-      MQTT_TOPIC: test/dummy_topic
-      MQTT_NUM_RETRIES: 10
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_TOPIC: ${MQTT_TOPIC:-my_topic}
       MINIO_ENDPOINT: docker-datalake
-      MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
-      MINIO_BUCKET_NAME: test-data
-      MINIO_NUM_RETRIES: 3
-    networks:
-      - backend
-    restart: always
+      MINIO_PORT: ${DATALAKE_PORT:-9000}
+      MINIO_BUCKET_NAME: ${DATALAKE_BUCKET:-my_bucket}
+    depends_on:
+      - docker-mqtt-broker
+      - docker-datalake
 
   # Datalake
   # This service will be used to store the raw data (MinIO)
   docker-datalake:
+    <<: *defaults-common
     build:
       context: ./datalake
-      dockerfile: Dockerfile
     container_name: my_datalake
     ports:
-      - "9000:9000"
-    environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
+      - ${DATALAKE_PORT:-9000}:${DATALAKE_PORT:-9000}
     command: ["server", "/data", "--console-address", ":9001"]
-    networks:
-      - backend
-    restart: always
 
 networks:
   # Backend network
