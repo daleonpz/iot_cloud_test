@@ -22,7 +22,7 @@ MINIO_HOST = os.getenv("MINIO_HOST", "docker_datalake")
 MINIO_PORT = os.getenv("MINIO_PORT", 9000)
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minio")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minio123")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET", "test_data")
+MINIO_BUCKET = os.getenv("MINIO_BUCKET", "test-data")
 
 CASSANDRA_HOST = os.getenv("CASSANDRA_HOST", "my_db")
 CASSANDRA_PORT = os.getenv("CASSANDRA_PORT", 9042)
