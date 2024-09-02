@@ -85,6 +85,7 @@ class Services:
     def GetServices(self):
         return [self.databank_handler, self.datalake_handler]
 
+
 class Transformer:
     def __init__(self):
         self.services = Services()
@@ -137,9 +138,13 @@ class Transformer:
         battery_percent = (data["battery_level"] / 5000.0) * 100
         return temp_c, battery_percent
 
+
 import random
+
+
 class TestPreparation:
-    """ Prepare test data for the datalake """
+    """Prepare test data for the datalake"""
+
     def __init__(self):
         self.services = Services()
 
@@ -166,13 +171,24 @@ class TestPreparation:
 
         # Prepare test data
         test_data = [
-                {"temperature": random.randint(50, 100), "battery_level": random.randint(2000, 5000)}, 
-                {"temperature": random.randint(50, 100), "battery_level": random.randint(2000, 5000)},
-                {"temperature": random.randint(50, 100), "battery_level": random.randint(2000, 5000)},
-                ]
+            {
+                "temperature": random.randint(50, 100),
+                "battery_level": random.randint(2000, 5000),
+            },
+            {
+                "temperature": random.randint(50, 100),
+                "battery_level": random.randint(2000, 5000),
+            },
+            {
+                "temperature": random.randint(50, 100),
+                "battery_level": random.randint(2000, 5000),
+            },
+        ]
 
         for i, data in enumerate(test_data):
-            datalake_handler.put_object(Bucket=MINIO_BUCKET, Key=f'data_{i}.json', Body=json.dumps(data))
+            datalake_handler.put_object(
+                Bucket=MINIO_BUCKET, Key=f"data_{i}.json", Body=json.dumps(data)
+            )
 
         self.services.Close()
 
